@@ -39,11 +39,12 @@ func (a addSlice) UnmarshalEnv(e string) error {
 
 func TestParser(t *testing.T) {
 	fakeEnv := map[string]string{
-		"TestKey":   "test value",
-		"TestKey2":  "12",
-		"Composite": `{"A": 11, "B": true}`,
-		"ADD_ONE":   "22",
-		"Slice":     "4",
+		"TestKey":    "test value",
+		"TestKey2":   "12",
+		"unexported": "some text",
+		"Composite":  `{"A": 11, "B": true}`,
+		"ADD_ONE":    "22",
+		"Slice":      "4",
 	}
 
 	var config struct {
@@ -59,6 +60,7 @@ func TestParser(t *testing.T) {
 		Slice  addSlice
 	}
 	config.Slice = []int{1, 2, 3}
+	config.unexported = "unexported"
 
 	err := parseInto(&config, getLookupFn(fakeEnv))
 	if err != nil {
@@ -67,6 +69,8 @@ func TestParser(t *testing.T) {
 
 	if config.TestKey != "test value" ||
 		config.TestKey2 != 12 ||
+		config.TestKey3 != false ||
+		config.unexported != "unexported" ||
 		config.Composite.A != 11 ||
 		config.Composite.B != true ||
 		config.AddOne != 23 ||
