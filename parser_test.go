@@ -14,9 +14,9 @@ func getLookupFn(m map[string]string) func(string) (string, bool) {
 	}
 }
 
-type addone int
+type addOne int
 
-func (a *addone) Parse(e Env) error {
+func (a *addOne) UnmarshalEnv(e string) error {
 	if err := json.Unmarshal([]byte(e), a); err != nil {
 		return err
 	}
@@ -24,9 +24,9 @@ func (a *addone) Parse(e Env) error {
 	return nil
 }
 
-type sliceAdder []int
+type addSlice []int
 
-func (a sliceAdder) Parse(e Env) error {
+func (a addSlice) UnmarshalEnv(e string) error {
 	var v int
 	if err := json.Unmarshal([]byte(e), &v); err != nil {
 		return err
@@ -39,11 +39,11 @@ func (a sliceAdder) Parse(e Env) error {
 
 func TestParser(t *testing.T) {
 	fakeEnv := map[string]string{
-		"TestKey":    "test value",
-		"TestKey2":   "12",
-		"Composite":  `{"A": 11, "B": true}`,
-		"ADD_ONE":    "22",
-		"SliceAdder": "4",
+		"TestKey":   "test value",
+		"TestKey2":  "12",
+		"Composite": `{"A": 11, "B": true}`,
+		"ADD_ONE":   "22",
+		"Slice":     "4",
 	}
 
 	var config struct {
@@ -55,12 +55,12 @@ func TestParser(t *testing.T) {
 			A int
 			B bool
 		}
-		AddOne     addone `env:"ADD_ONE"`
-		SliceAdder sliceAdder
+		AddOne addOne `env:"ADD_ONE"`
+		Slice  addSlice
 	}
-	config.SliceAdder = []int{1, 2, 3}
+	config.Slice = []int{1, 2, 3}
 
-	err := parse(&config, getLookupFn(fakeEnv))
+	err := parseInto(&config, getLookupFn(fakeEnv))
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -70,9 +70,9 @@ func TestParser(t *testing.T) {
 		config.Composite.A != 11 ||
 		config.Composite.B != true ||
 		config.AddOne != 23 ||
-		config.SliceAdder[0] != 5 ||
-		config.SliceAdder[1] != 6 ||
-		config.SliceAdder[2] != 7 {
+		config.Slice[0] != 5 ||
+		config.Slice[1] != 6 ||
+		config.Slice[2] != 7 {
 		t.FailNow()
 	}
 }
@@ -85,7 +85,7 @@ func TestRealEnv(t *testing.T) {
 		Asdf int `env:"TEST_KEY"`
 	}
 
-	err := Parse(&config)
+	err := ParseInto(&config)
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -104,7 +104,7 @@ func TestInvalidTarget(t *testing.T) {
 
 	var config map[string]string
 
-	Parse(&config)
+	ParseInto(&config)
 }
 
 func TestError(t *testing.T) {
@@ -116,14 +116,14 @@ func TestError(t *testing.T) {
 
 	var config struct {
 		TestKey2   int
-		AddOne     addone `env:"ADD_ONE"`
-		SliceAdder sliceAdder
+		AddOne     addOne `env:"ADD_ONE"`
+		SliceAdder addSlice
 	}
 	config.TestKey2 = 22
 	config.AddOne = 44
 	config.SliceAdder = []int{1, 2, 3}
 
-	err := parse(&config, getLookupFn(fakeEnv))
+	err := parseInto(&config, getLookupFn(fakeEnv))
 	if err == nil || err.Error() == "" {
 		t.FailNow()
 	}

@@ -7,16 +7,14 @@ import (
 	"strings"
 )
 
-type Env string
-
-type Parser interface {
-	Parse(e Env) error
+type Unmarshaler interface {
+	UnmarshalEnv(e string) error
 }
 
-var parserType = reflect.TypeOf((*Parser)(nil)).Elem()
+var unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 
-func Parse(target interface{}) error {
-	return parse(target, os.LookupEnv)
+func ParseInto(target interface{}) error {
+	return parseInto(target, os.LookupEnv)
 }
 
 func getEnvKey(f reflect.StructField) string {
@@ -32,7 +30,7 @@ func getEnvKey(f reflect.StructField) string {
 	return key
 }
 
-func parse(target interface{}, lookupFn func(string) (string, bool)) error {
+func parseInto(target interface{}, lookupFn func(string) (string, bool)) error {
 	var targetVal reflect.Value
 	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
 		targetVal = v.Elem()
@@ -57,12 +55,12 @@ func parse(target interface{}, lookupFn func(string) (string, bool)) error {
 
 		f := targetVal.Field(i)
 		switch {
-		case f.Type().Implements(parserType):
-			if err := f.Interface().(Parser).Parse(Env(val)); err != nil {
+		case f.Type().Implements(unmarshalerType):
+			if err := f.Interface().(Unmarshaler).UnmarshalEnv(val); err != nil {
 				parseError.append(key, val, err)
 			}
-		case f.Addr().Type().Implements(parserType):
-			if err := f.Addr().Interface().(Parser).Parse(Env(val)); err != nil {
+		case f.Addr().Type().Implements(unmarshalerType):
+			if err := f.Addr().Interface().(Unmarshaler).UnmarshalEnv(val); err != nil {
 				parseError.append(key, val, err)
 			}
 		case f.Kind() == reflect.String:
