@@ -5,13 +5,17 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type Unmarshaler interface {
 	UnmarshalEnv(e string) error
 }
 
-var unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+var (
+	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
+	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
+)
 
 func ParseInto(target interface{}) error {
 	return parseInto(target, os.LookupEnv)
@@ -41,7 +45,7 @@ func parseInto(target interface{}, lookupFn func(string) (string, bool)) error {
 
 	var parseError ParseError
 
-	for t, i := targetVal.Type(), 0; i < t.NumField(); i++ {
+	for i, t := 0, targetVal.Type(); i < t.NumField(); i++ {
 		field := targetVal.Type().Field(i)
 		if !field.IsExported() {
 			continue
@@ -64,10 +68,31 @@ func parseInto(target interface{}, lookupFn func(string) (string, bool)) error {
 				parseError.append(key, val, err)
 			}
 		case f.Kind() == reflect.String:
-			f.Set(reflect.ValueOf(val))
+			f.SetString(val)
+		case f.Type() == timeType:
+			t, err := time.Parse(time.RFC3339Nano, val)
+			if err != nil {
+				parseError.append(key, val, err)
+			} else {
+				f.Set(reflect.ValueOf(t))
+			}
 		default:
 			if err := json.Unmarshal([]byte(val), f.Addr().Interface()); err != nil {
-				parseError.append(key, val, err)
+				if f.Kind() == reflect.Array || f.Kind() == reflect.Slice {
+					if f.Type().Elem().Kind() == reflect.String {
+						ss := strings.Split(val, ",")
+						for i := range ss {
+							ss[i] = strings.TrimSpace(ss[i])
+						}
+						f.Set(reflect.ValueOf(ss))
+					} else {
+						if err2 := json.Unmarshal([]byte("["+val+"]"), f.Addr().Interface()); err2 != nil {
+							parseError.append(key, val, err) // append first error
+						}
+					}
+				} else {
+					parseError.append(key, val, err)
+				}
 			}
 		}
 	}

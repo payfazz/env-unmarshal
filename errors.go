@@ -5,14 +5,12 @@ import (
 	"strings"
 )
 
-type ParseErrorItem struct {
-	Key   string
-	Value string
-	Cause error
-}
-
 type ParseError struct {
-	Items []ParseErrorItem
+	Items []struct {
+		Key   string
+		Value string
+		Cause error
+	}
 }
 
 func (p *ParseError) Error() string {
@@ -27,7 +25,11 @@ func (p *ParseError) Error() string {
 }
 
 func (p *ParseError) append(key, value string, cause error) {
-	p.Items = append(p.Items, ParseErrorItem{
+	p.Items = append(p.Items, struct {
+		Key   string
+		Value string
+		Cause error
+	}{
 		Key:   key,
 		Value: value,
 		Cause: cause,

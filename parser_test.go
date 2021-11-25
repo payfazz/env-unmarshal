@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"testing"
+	"time"
 )
 
 func getLookupFn(m map[string]string) func(string) (string, bool) {
@@ -39,12 +40,15 @@ func (a addSlice) UnmarshalEnv(e string) error {
 
 func TestParser(t *testing.T) {
 	fakeEnv := map[string]string{
-		"TestKey":    "test value",
-		"TestKey2":   "12",
-		"unexported": "some text",
-		"Composite":  `{"A": 11, "B": true}`,
-		"ADD_ONE":    "22",
-		"Slice":      "4",
+		"TestKey":     "test value",
+		"TestKey2":    "12",
+		"unexported":  "some text",
+		"Composite":   `{"A": 11, "B": true}`,
+		"ADD_ONE":     "22",
+		"AddSlice":    "4",
+		"Time":        "2021-09-14T12:13:14.123123+09:00",
+		"StringSlice": "a, b, c",
+		"IntSlice":    "1,2,3",
 	}
 
 	var config struct {
@@ -56,10 +60,13 @@ func TestParser(t *testing.T) {
 			A int
 			B bool
 		}
-		AddOne addOne `env:"ADD_ONE"`
-		Slice  addSlice
+		AddOne      addOne `env:"ADD_ONE"`
+		AddSlice    addSlice
+		Time        time.Time
+		StringSlice []string
+		IntSlice    []int
 	}
-	config.Slice = []int{1, 2, 3}
+	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
 
 	err := parseInto(&config, getLookupFn(fakeEnv))
@@ -74,9 +81,16 @@ func TestParser(t *testing.T) {
 		config.Composite.A != 11 ||
 		config.Composite.B != true ||
 		config.AddOne != 23 ||
-		config.Slice[0] != 5 ||
-		config.Slice[1] != 6 ||
-		config.Slice[2] != 7 {
+		config.AddSlice[0] != 5 ||
+		config.AddSlice[1] != 6 ||
+		config.AddSlice[2] != 7 ||
+		config.Time.UTC() != time.Date(2021, 9, 14, 3, 13, 14, 123123000, time.UTC) ||
+		config.StringSlice[0] != "a" ||
+		config.StringSlice[1] != "b" ||
+		config.StringSlice[2] != "c" ||
+		config.IntSlice[0] != 1 ||
+		config.IntSlice[1] != 2 ||
+		config.IntSlice[2] != 3 {
 		t.FailNow()
 	}
 }
@@ -116,12 +130,16 @@ func TestError(t *testing.T) {
 		"TestKey2":   "aa",
 		"ADD_ONE":    "aa",
 		"SliceAdder": "aa",
+		"Time":       "aa",
+		"IntSlice":   "1,aa,3",
 	}
 
 	var config struct {
 		TestKey2   int
 		AddOne     addOne `env:"ADD_ONE"`
 		SliceAdder addSlice
+		Time       time.Time
+		IntSlice   []int
 	}
 	config.TestKey2 = 22
 	config.AddOne = 44
@@ -137,11 +155,23 @@ func TestError(t *testing.T) {
 		t.FailNow()
 	}
 
+	if len(parseError.Items) != len(fakeEnv) {
+		for _, v := range parseError.Items {
+			if _, ok := fakeEnv[v.Key]; !ok {
+				t.FailNow()
+			}
+		}
+	}
+
+	defTime := time.Time{}
+
 	if config.TestKey2 != 22 ||
 		config.AddOne != 44 ||
 		config.SliceAdder[0] != 1 ||
 		config.SliceAdder[1] != 2 ||
-		config.SliceAdder[2] != 3 {
+		config.SliceAdder[2] != 3 ||
+		config.Time != defTime ||
+		len(config.IntSlice) != 0 {
 		t.FailNow()
 	}
 }
