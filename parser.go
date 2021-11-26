@@ -9,7 +9,7 @@ import (
 )
 
 type Unmarshaler interface {
-	UnmarshalEnv(e string) error
+	UnmarshalEnv(val string) error
 }
 
 var (
@@ -17,24 +17,24 @@ var (
 	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
 )
 
-func ParseInto(target interface{}) error {
-	return parseInto(target, os.LookupEnv)
+func Unmarshal(target interface{}) error {
+	return unmarshal(target, os.LookupEnv)
 }
 
-func getEnvKey(f reflect.StructField) string {
-	var key string
-	rawTags := f.Tag.Get("env")
-	tags := strings.Split(rawTags, ",")
-	if len(tags) > 0 {
-		key = tags[0]
+func lookupEnvName(f reflect.StructField) (string, bool) {
+	if !f.IsExported() {
+		return "", false
 	}
+
+	key := f.Tag.Get("env")
 	if key == "" {
 		key = f.Name
 	}
-	return key
+
+	return key, true
 }
 
-func parseInto(target interface{}, lookupFn func(string) (string, bool)) error {
+func unmarshal(target interface{}, lookupEnvFn func(string) (string, bool)) error {
 	var targetVal reflect.Value
 	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
 		targetVal = v.Elem()
@@ -46,13 +46,12 @@ func parseInto(target interface{}, lookupFn func(string) (string, bool)) error {
 	var parseError ParseError
 
 	for i, t := 0, targetVal.Type(); i < t.NumField(); i++ {
-		field := targetVal.Type().Field(i)
-		if !field.IsExported() {
+		key, ok := lookupEnvName(targetVal.Type().Field(i))
+		if !ok {
 			continue
 		}
 
-		key := getEnvKey(field)
-		val, ok := lookupFn(key)
+		val, ok := lookupEnvFn(key)
 		if !ok {
 			continue
 		}

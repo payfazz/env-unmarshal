@@ -69,7 +69,7 @@ func TestParser(t *testing.T) {
 	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
 
-	err := parseInto(&config, getLookupFn(fakeEnv))
+	err := unmarshal(&config, getLookupFn(fakeEnv))
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -103,7 +103,7 @@ func TestRealEnv(t *testing.T) {
 		Asdf int `env:"TEST_KEY"`
 	}
 
-	err := ParseInto(&config)
+	err := Unmarshal(&config)
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -122,7 +122,7 @@ func TestInvalidTarget(t *testing.T) {
 
 	var config map[string]string
 
-	ParseInto(&config)
+	Unmarshal(&config)
 }
 
 func TestError(t *testing.T) {
@@ -145,7 +145,7 @@ func TestError(t *testing.T) {
 	config.AddOne = 44
 	config.SliceAdder = []int{1, 2, 3}
 
-	err := parseInto(&config, getLookupFn(fakeEnv))
+	err := unmarshal(&config, getLookupFn(fakeEnv))
 	if err == nil || err.Error() == "" {
 		t.FailNow()
 	}
