@@ -49,7 +49,6 @@ func TestParser(t *testing.T) {
 		"Time":        "2021-09-14T12:13:14.123123+09:00",
 		"StringSlice": "a, b, c",
 		"IntSlice":    "1,2,3",
-		"b64":         "YXNkZg",
 	}
 
 	var config struct {
@@ -66,7 +65,6 @@ func TestParser(t *testing.T) {
 		Time        time.Time
 		StringSlice []string
 		IntSlice    []int
-		B64         B64UrlString `env:"b64"`
 	}
 	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
@@ -92,8 +90,7 @@ func TestParser(t *testing.T) {
 		config.StringSlice[2] != "c" ||
 		config.IntSlice[0] != 1 ||
 		config.IntSlice[1] != 2 ||
-		config.IntSlice[2] != 3 ||
-		config.B64 != "asdf" {
+		config.IntSlice[2] != 3 {
 		t.FailNow()
 	}
 }
@@ -135,7 +132,6 @@ func TestError(t *testing.T) {
 		"SliceAdder": "aa",
 		"Time":       "aa",
 		"IntSlice":   "1,aa,3",
-		"b64":        "a",
 	}
 
 	var config struct {
@@ -144,7 +140,6 @@ func TestError(t *testing.T) {
 		SliceAdder addSlice
 		Time       time.Time
 		IntSlice   []int
-		B64        B64UrlString `env:"b64"`
 	}
 	config.TestKey2 = 22
 	config.AddOne = 44
@@ -176,8 +171,7 @@ func TestError(t *testing.T) {
 		config.SliceAdder[1] != 2 ||
 		config.SliceAdder[2] != 3 ||
 		config.Time != defTime ||
-		len(config.IntSlice) != 0 ||
-		config.B64 != "" {
+		len(config.IntSlice) != 0 {
 		t.FailNow()
 	}
 }
