@@ -15,6 +15,7 @@ type Unmarshaler interface {
 var (
 	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
+	durationType    = reflect.TypeOf((*time.Duration)(nil)).Elem()
 )
 
 func Unmarshal(target interface{}) error {
@@ -74,6 +75,13 @@ func unmarshal(target interface{}, lookupEnvFn func(string) (string, bool)) erro
 				parseError.append(key, val, err)
 			} else {
 				f.Set(reflect.ValueOf(t))
+			}
+		case f.Type() == durationType:
+			d, err := time.ParseDuration(val)
+			if err != nil {
+				parseError.append(key, val, err)
+			} else {
+				f.Set(reflect.ValueOf(d))
 			}
 		default:
 			if err := json.Unmarshal([]byte(val), f.Addr().Interface()); err != nil {

@@ -49,6 +49,7 @@ func TestParser(t *testing.T) {
 		"Time":        "2021-09-14T12:13:14.123123+09:00",
 		"StringSlice": "a, b, c",
 		"IntSlice":    "1,2,3",
+		"Dur":         "1m30s",
 	}
 
 	var config struct {
@@ -65,6 +66,7 @@ func TestParser(t *testing.T) {
 		Time        time.Time
 		StringSlice []string
 		IntSlice    []int
+		Dur         time.Duration
 	}
 	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
@@ -90,7 +92,8 @@ func TestParser(t *testing.T) {
 		config.StringSlice[2] != "c" ||
 		config.IntSlice[0] != 1 ||
 		config.IntSlice[1] != 2 ||
-		config.IntSlice[2] != 3 {
+		config.IntSlice[2] != 3 ||
+		config.Dur != 1*time.Minute+30*time.Second {
 		t.FailNow()
 	}
 }
@@ -132,6 +135,7 @@ func TestError(t *testing.T) {
 		"SliceAdder": "aa",
 		"Time":       "aa",
 		"IntSlice":   "1,aa,3",
+		"Dur":        "aa",
 	}
 
 	var config struct {
@@ -140,10 +144,12 @@ func TestError(t *testing.T) {
 		SliceAdder addSlice
 		Time       time.Time
 		IntSlice   []int
+		Dur        time.Duration
 	}
 	config.TestKey2 = 22
 	config.AddOne = 44
 	config.SliceAdder = []int{1, 2, 3}
+	config.Dur = 3 * time.Minute
 
 	err := unmarshal(&config, getLookupFn(fakeEnv))
 	if err == nil || err.Error() == "" {
@@ -171,7 +177,8 @@ func TestError(t *testing.T) {
 		config.SliceAdder[1] != 2 ||
 		config.SliceAdder[2] != 3 ||
 		config.Time != defTime ||
-		len(config.IntSlice) != 0 {
+		len(config.IntSlice) != 0 ||
+		config.Dur != 3*time.Minute {
 		t.FailNow()
 	}
 }
