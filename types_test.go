@@ -2,48 +2,62 @@ package envparser
 
 import (
 	"errors"
+	"os"
 	"testing"
 )
 
 func TestParserTypes(t *testing.T) {
 	fakeEnv := map[string]string{
-		"b64":        "YXNkZg",
-		"FileBytes":  "testdata/test.txt",
-		"FileString": "testdata/test.txt",
+		"b64":       "YXNkZg",
+		"FileBytes": "testdata/test.txt",
 	}
+
+	for k, v := range fakeEnv {
+		os.Setenv(k, v)
+	}
+	defer func() {
+		for k := range fakeEnv {
+			os.Unsetenv(k)
+		}
+	}()
 
 	var config struct {
-		B64        B64UrlString `env:"b64"`
-		FileBytes  BytesFromFile
-		FileString StringFromFile
+		B64       Base64 `env:"b64"`
+		FileBytes File
 	}
 
-	err := unmarshal(&config, getLookupFn(fakeEnv))
+	err := Unmarshal(&config)
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
 
-	if config.B64 != "asdf" ||
-		string(config.FileBytes) != "hello\n" ||
-		config.FileString != "hello\n" {
+	if string(config.B64) != "asdf" ||
+		string(config.FileBytes) != "hello\n" {
 		t.FailNow()
 	}
 }
 
 func TestTypesError(t *testing.T) {
 	fakeEnv := map[string]string{
-		"b64":        "a",
-		"FileBytes":  "testdata/nonexisted",
-		"FileString": "testdata/nonexisted",
+		"b64":       "a",
+		"FileBytes": "testdata/nonexisted",
 	}
+
+	for k, v := range fakeEnv {
+		os.Setenv(k, v)
+	}
+	defer func() {
+		for k := range fakeEnv {
+			os.Unsetenv(k)
+		}
+	}()
 
 	var config struct {
-		B64        B64UrlString `env:"b64"`
-		FileBytes  BytesFromFile
-		FileString StringFromFile
+		B64       Base64 `env:"b64"`
+		FileBytes File
 	}
 
-	err := unmarshal(&config, getLookupFn(fakeEnv))
+	err := Unmarshal(&config)
 	if err == nil || err.Error() == "" {
 		t.FailNow()
 	}
@@ -61,9 +75,8 @@ func TestTypesError(t *testing.T) {
 		}
 	}
 
-	if config.B64 != "" ||
-		string(config.FileBytes) != "" ||
-		config.FileString != "" {
+	if string(config.B64) != "" ||
+		string(config.FileBytes) != "" {
 		t.FailNow()
 	}
 }

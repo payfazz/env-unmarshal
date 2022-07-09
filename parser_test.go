@@ -8,13 +8,6 @@ import (
 	"time"
 )
 
-func getLookupFn(m map[string]string) func(string) (string, bool) {
-	return func(k string) (string, bool) {
-		v, ok := m[k]
-		return v, ok
-	}
-}
-
 type addOne int
 
 func (a *addOne) UnmarshalEnv(e string) error {
@@ -52,6 +45,15 @@ func TestParser(t *testing.T) {
 		"Dur":         "1m30s",
 	}
 
+	for k, v := range fakeEnv {
+		os.Setenv(k, v)
+	}
+	defer func() {
+		for k := range fakeEnv {
+			os.Unsetenv(k)
+		}
+	}()
+
 	var config struct {
 		TestKey    string
 		TestKey2   int
@@ -71,7 +73,7 @@ func TestParser(t *testing.T) {
 	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
 
-	err := unmarshal(&config, getLookupFn(fakeEnv))
+	err := Unmarshal(&config)
 	if err != nil {
 		t.Fatalf("%s", err.Error())
 	}
@@ -138,6 +140,15 @@ func TestError(t *testing.T) {
 		"Dur":        "aa",
 	}
 
+	for k, v := range fakeEnv {
+		os.Setenv(k, v)
+	}
+	defer func() {
+		for k := range fakeEnv {
+			os.Unsetenv(k)
+		}
+	}()
+
 	var config struct {
 		TestKey2   int
 		AddOne     addOne `env:"ADD_ONE"`
@@ -151,7 +162,7 @@ func TestError(t *testing.T) {
 	config.SliceAdder = []int{1, 2, 3}
 	config.Dur = 3 * time.Minute
 
-	err := unmarshal(&config, getLookupFn(fakeEnv))
+	err := Unmarshal(&config)
 	if err == nil || err.Error() == "" {
 		t.FailNow()
 	}

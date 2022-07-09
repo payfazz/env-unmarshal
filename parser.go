@@ -19,23 +19,6 @@ var (
 )
 
 func Unmarshal(target interface{}) error {
-	return unmarshal(target, os.LookupEnv)
-}
-
-func lookupEnvName(f reflect.StructField) (string, bool) {
-	if !f.IsExported() {
-		return "", false
-	}
-
-	key := f.Tag.Get("env")
-	if key == "" {
-		key = f.Name
-	}
-
-	return key, true
-}
-
-func unmarshal(target interface{}, lookupEnvFn func(string) (string, bool)) error {
 	var targetVal reflect.Value
 	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
 		targetVal = v.Elem()
@@ -47,22 +30,18 @@ func unmarshal(target interface{}, lookupEnvFn func(string) (string, bool)) erro
 	var parseError ParseError
 
 	for i, t := 0, targetVal.Type(); i < t.NumField(); i++ {
-		key, ok := lookupEnvName(targetVal.Type().Field(i))
-		if !ok {
+		key := lookupEnvName(targetVal.Type().Field(i))
+		if key == "" {
 			continue
 		}
 
-		val, ok := lookupEnvFn(key)
+		val, ok := os.LookupEnv(key)
 		if !ok {
 			continue
 		}
 
 		f := targetVal.Field(i)
 		switch {
-		case f.Type().Implements(unmarshalerType):
-			if err := f.Interface().(Unmarshaler).UnmarshalEnv(val); err != nil {
-				parseError.append(key, val, err)
-			}
 		case f.Addr().Type().Implements(unmarshalerType):
 			if err := f.Addr().Interface().(Unmarshaler).UnmarshalEnv(val); err != nil {
 				parseError.append(key, val, err)
@@ -109,4 +88,17 @@ func unmarshal(target interface{}, lookupEnvFn func(string) (string, bool)) erro
 	}
 
 	return nil
+}
+
+func lookupEnvName(f reflect.StructField) string {
+	if !f.IsExported() {
+		return ""
+	}
+
+	key, ok := f.Tag.Lookup("env")
+	if ok {
+		return key
+	}
+
+	return f.Name
 }
