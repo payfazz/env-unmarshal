@@ -10,6 +10,7 @@ func TestParserTypes(t *testing.T) {
 	fakeEnv := map[string]string{
 		"b64":       "YXNkZg",
 		"FileBytes": "testdata/test.txt",
+		"b64ofjson": "eyJoZWxsbyI6IndvcmxkIn0K",
 	}
 
 	for k, v := range fakeEnv {
@@ -24,6 +25,9 @@ func TestParserTypes(t *testing.T) {
 	var config struct {
 		B64       Base64 `env:"b64"`
 		FileBytes File
+		B64OfJson Base64OfJSON[struct {
+			Hello string `json:"hello"`
+		}] `env:"b64ofjson"`
 	}
 
 	err := Unmarshal(&config)
@@ -35,12 +39,17 @@ func TestParserTypes(t *testing.T) {
 		string(config.FileBytes) != "hello\n" {
 		t.FailNow()
 	}
+
+	if config.B64OfJson.Value.Hello != "world" {
+		t.FailNow()
+	}
 }
 
 func TestTypesError(t *testing.T) {
 	fakeEnv := map[string]string{
 		"b64":       "a",
 		"FileBytes": "testdata/nonexisted",
+		"b64ofjson": "e",
 	}
 
 	for k, v := range fakeEnv {
@@ -55,6 +64,9 @@ func TestTypesError(t *testing.T) {
 	var config struct {
 		B64       Base64 `env:"b64"`
 		FileBytes File
+		B64OfJson Base64OfJSON[struct {
+			Hello string `json:"hello"`
+		}] `env:"b64ofjson"`
 	}
 
 	err := Unmarshal(&config)
@@ -77,6 +89,10 @@ func TestTypesError(t *testing.T) {
 
 	if string(config.B64) != "" ||
 		string(config.FileBytes) != "" {
+		t.FailNow()
+	}
+
+	if config.B64OfJson.Value.Hello != "" {
 		t.FailNow()
 	}
 }
