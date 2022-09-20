@@ -16,6 +16,7 @@ var (
 	unmarshalerType = reflect.TypeOf((*Unmarshaler)(nil)).Elem()
 	timeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
 	durationType    = reflect.TypeOf((*time.Duration)(nil)).Elem()
+	locationType    = reflect.TypeOf((**time.Location)(nil)).Elem()
 )
 
 func Unmarshal(target interface{}) error {
@@ -61,6 +62,13 @@ func Unmarshal(target interface{}) error {
 				parseError.append(key, val, err)
 			} else {
 				f.Set(reflect.ValueOf(d))
+			}
+		case f.Type() == locationType:
+			l, err := time.LoadLocation(val)
+			if err != nil {
+				parseError.append(key, val, err)
+			} else {
+				f.Set(reflect.ValueOf(l))
 			}
 		default:
 			if err := json.Unmarshal([]byte(val), f.Addr().Interface()); err != nil {

@@ -43,6 +43,7 @@ func TestParser(t *testing.T) {
 		"StringSlice": "a, b, c",
 		"IntSlice":    "1,2,3",
 		"Dur":         "1m30s",
+		"Loc":         "Asia/Jakarta",
 	}
 
 	for k, v := range fakeEnv {
@@ -69,6 +70,7 @@ func TestParser(t *testing.T) {
 		StringSlice []string
 		IntSlice    []int
 		Dur         time.Duration
+		Loc         *time.Location
 	}
 	config.AddSlice = []int{1, 2, 3}
 	config.unexported = "unexported"
@@ -95,7 +97,8 @@ func TestParser(t *testing.T) {
 		config.IntSlice[0] != 1 ||
 		config.IntSlice[1] != 2 ||
 		config.IntSlice[2] != 3 ||
-		config.Dur != 1*time.Minute+30*time.Second {
+		config.Dur != 1*time.Minute+30*time.Second ||
+		config.Loc.String() != "Asia/Jakarta" {
 		t.FailNow()
 	}
 }
@@ -138,6 +141,7 @@ func TestError(t *testing.T) {
 		"Time":       "aa",
 		"IntSlice":   "1,aa,3",
 		"Dur":        "aa",
+		"Loc":        "Asia/Somewhere",
 	}
 
 	for k, v := range fakeEnv {
@@ -156,6 +160,7 @@ func TestError(t *testing.T) {
 		Time       time.Time
 		IntSlice   []int
 		Dur        time.Duration
+		Loc        *time.Location
 	}
 	config.TestKey2 = 22
 	config.AddOne = 44
@@ -189,7 +194,8 @@ func TestError(t *testing.T) {
 		config.SliceAdder[2] != 3 ||
 		config.Time != defTime ||
 		len(config.IntSlice) != 0 ||
-		config.Dur != 3*time.Minute {
+		config.Dur != 3*time.Minute ||
+		config.Loc != nil {
 		t.FailNow()
 	}
 }
