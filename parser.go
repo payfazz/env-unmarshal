@@ -19,7 +19,7 @@ var (
 	locationType    = reflect.TypeOf((**time.Location)(nil)).Elem()
 )
 
-func Unmarshal(target interface{}) error {
+func Unmarshal(target any) error {
 	var targetVal reflect.Value
 	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
 		targetVal = v.Elem()
@@ -72,7 +72,7 @@ func Unmarshal(target interface{}) error {
 			}
 		default:
 			if err := json.Unmarshal([]byte(val), f.Addr().Interface()); err != nil {
-				if f.Kind() == reflect.Array || f.Kind() == reflect.Slice {
+				if f.Kind() == reflect.Slice {
 					if f.Type().Elem().Kind() == reflect.String {
 						ss := strings.Split(val, ",")
 						for i := range ss {
