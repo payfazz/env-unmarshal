@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -197,5 +198,29 @@ func TestError(t *testing.T) {
 		config.Dur != 3*time.Minute ||
 		config.Loc != nil {
 		t.FailNow()
+	}
+}
+
+func TestListEnvName(t *testing.T) {
+	var config struct {
+		TestKey2   int
+		AddOne     addOne `env:"ADD_ONE"`
+		SliceAdder addSlice
+		Time       time.Time
+		IntSlice   []int
+		Dur        time.Duration
+		Loc        *time.Location
+	}
+	names := ListEnvName(&config)
+	if !reflect.DeepEqual(names, []string{
+		"TestKey2",
+		"ADD_ONE",
+		"SliceAdder",
+		"Time",
+		"IntSlice",
+		"Dur",
+		"Loc",
+	}) {
+		t.Fatalf("invalid ListEnvName")
 	}
 }

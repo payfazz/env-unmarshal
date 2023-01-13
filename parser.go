@@ -20,13 +20,7 @@ var (
 )
 
 func Unmarshal(target any) error {
-	var targetVal reflect.Value
-	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
-		targetVal = v.Elem()
-	}
-	if targetVal.Kind() != reflect.Struct {
-		panic("envparser: target must be non-nil pointer to struct")
-	}
+	targetVal := getValue(target)
 
 	var parseError ParseError
 
@@ -109,4 +103,32 @@ func lookupEnvName(f reflect.StructField) string {
 	}
 
 	return f.Name
+}
+
+func getValue(target any) reflect.Value {
+	var targetVal reflect.Value
+	if v := reflect.ValueOf(target); v.Kind() == reflect.Ptr {
+		targetVal = v.Elem()
+	}
+	if targetVal.Kind() != reflect.Struct {
+		panic("envparser: target must be non-nil pointer to struct")
+	}
+
+	return targetVal
+}
+
+func ListEnvName(target any) []string {
+	targetVal := getValue(target)
+
+	var ret []string
+	for i, t := 0, targetVal.Type(); i < t.NumField(); i++ {
+		key := lookupEnvName(targetVal.Type().Field(i))
+		if key == "" {
+			continue
+		}
+
+		ret = append(ret, key)
+	}
+
+	return ret
 }
